@@ -1,0 +1,445 @@
+<x-app-layout>
+    <div x-data="salaryApp()" 
+         @open-create-modal.window="openCreate()" 
+         @open-edit-modal.window="openEdit($event.detail)">
+        
+        <x-slot name="header">
+            <div class="flex justify-between items-center w-full">
+                <h2 class="font-semibold text-2xl text-gray-800 dark:text-gray-200 leading-tight drop-shadow-sm">
+                    {{ __('My Salaries') }}
+                </h2>
+                <!-- Button triggers create modal via window event -->
+                <button @click="$dispatch('open-create-modal')" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-xl font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 transition ease-in-out duration-150 shadow-md hover:shadow-lg">
+                    <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Salary
+                </button>
+            </div>
+        </x-slot>
+
+        <!-- Main Content Area with Background -->
+        <div class="py-6 sm:py-8 lg:py-12 bg-transparent">
+            <div class="max-w-7xl mx-auto space-y-6">
+
+                @if (session('success'))
+                    <div class="p-4 mb-4 text-sm text-green-800 rounded-xl bg-green-50 dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm" role="alert">
+                        <span class="font-medium">Success!</span> {{ session('success') }}
+                    </div>
+                @endif
+                
+                @if ($errors->any())
+                    <div class="p-4 mb-4 text-sm text-red-800 rounded-xl bg-red-50 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm" role="alert">
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700 sm:rounded-3xl">
+                    <div class="p-4 sm:p-8">
+                        
+                        <!-- Header & Filter -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">Salary History</h3>
+                            <form method="GET" action="{{ route('salaries.index') }}" class="flex items-center space-x-2">
+                                <label for="year_filter" class="text-sm font-medium text-gray-600 dark:text-gray-400">Year:</label>
+                                <select id="year_filter" name="year" onchange="this.form.submit()" class="block w-28 sm:w-32 border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm py-1.5 px-3 text-sm transition">
+                                    <option value="all" {{ $selectedYear == 'all' ? 'selected' : '' }}>All Years</option>
+                                    @foreach($availableYears as $y)
+                                        <option value="{{ $y }}" {{ $selectedYear == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        </div>
+
+                        <!-- Summary Metrics -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                            <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/30 dark:to-gray-800 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-100 dark:bg-indigo-900/40 rounded-full blur-2xl pointer-events-none"></div>
+                                <div class="text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-1 relative z-10">Total Credited Salary ({{ $selectedYear == 'all' ? 'All Time' : $selectedYear }})</div>
+                                <div class="text-3xl font-extrabold text-indigo-900 dark:text-indigo-100 relative z-10">₹{{ number_format($totalCredited, 2) }}</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-red-50 to-white dark:from-red-900/30 dark:to-gray-800 p-5 rounded-2xl border border-red-100 dark:border-red-800/50 shadow-sm relative overflow-hidden">
+                                <div class="absolute -right-4 -top-4 w-24 h-24 bg-red-100 dark:bg-red-900/40 rounded-full blur-2xl pointer-events-none"></div>
+                                <div class="text-sm text-red-600 dark:text-red-400 font-medium mb-1 relative z-10">Total Cutoff Salary ({{ $selectedYear == 'all' ? 'All Time' : $selectedYear }})</div>
+                                <div class="text-3xl font-extrabold text-red-900 dark:text-red-100 relative z-10">₹{{ number_format($totalCutoff, 2) }}</div>
+                            </div>
+                        </div>
+
+                        @if($salaries->isEmpty())
+                            <div class="text-center py-12 bg-gray-50/50 dark:bg-gray-900/30 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No entries yet</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new salary record.</p>
+                                <div class="mt-6">
+                                    <button @click="openCreate()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        New Entry
+                                    </button>
+                                </div>
+                            </div>
+                        @else
+                            
+                            <!-- DESKTOP TABLE VIEW -->
+                            <div class="hidden md:block overflow-x-auto pb-4">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month/Year</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Base Salary</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Attendance</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cutoff (Absent)</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fixed Deductions</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Final Salary</th>
+                                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-transparent divide-y divide-gray-100 dark:divide-gray-700/50">
+                                        @foreach($salaries as $salary)
+                                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition duration-150">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $salary->month }}</div>
+                                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ $salary->year }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm text-gray-900 dark:text-gray-200">₹{{ number_format($salary->actual_salary, 2) }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm text-gray-900 dark:text-gray-200">{{ $salary->total_present_days }} / {{ $salary->total_working_days }} Days</div>
+                                                    <div class="text-xs text-red-500 dark:text-red-400">Absent: {{ $salary->total_absent_days }}</div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    @if($salary->cutoff > 0)
+                                                        <div class="text-sm text-red-600 dark:text-red-400 font-medium">- ₹{{ number_format($salary->cutoff, 2) }}</div>
+                                                    @else
+                                                        <div class="text-sm text-green-600 dark:text-green-400 font-medium">₹0.00</div>
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                    <div class="w-48 space-y-1">
+                                                        <div class="flex justify-between"><span class="text-gray-400">ESIC ({{ $salary->esic_percent }}%):</span> <span class="font-medium text-gray-800 dark:text-gray-200">₹{{ number_format($salary->esic_money, 2) }}</span></div>
+                                                        <div class="flex justify-between"><span class="text-gray-400">Tax:</span> <span class="font-medium text-gray-800 dark:text-gray-200">₹{{ number_format($salary->tax, 2) }}</span></div>
+                                                        <div class="flex justify-between"><span class="text-gray-400">PF:</span> <span class="font-medium text-gray-800 dark:text-gray-200">₹{{ number_format($salary->pf, 2) }}</span></div>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <span class="px-3 py-1 inline-flex text-sm font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400 shadow-sm border border-green-200 dark:border-green-800/50">
+                                                        ₹{{ number_format($salary->final_salary, 2) }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div class="flex justify-end space-x-2">
+                                                        <button @click="openEdit({{ $salary->toJson() }})" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-lg transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                        </button>
+                                                        <form id="delete-form-desktop-{{ $salary->id }}" method="POST" action="{{ route('salaries.destroy', $salary->id) }}" class="inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="button" onclick="confirmDelete('delete-form-desktop-{{ $salary->id }}')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg transition">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- MOBILE CARD VIEW -->
+                            <div class="md:hidden space-y-4">
+                                @foreach($salaries as $salary)
+                                    <div class="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-5 border border-gray-100 dark:border-gray-600 shadow-sm relative overflow-hidden">
+                                        
+                                        <!-- Actions (Top Right) -->
+                                        <div class="absolute top-4 right-4 flex space-x-2">
+                                            <button @click="openEdit({{ $salary->toJson() }})" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            </button>
+                                            <form id="delete-form-mobile-{{ $salary->id }}" method="POST" action="{{ route('salaries.destroy', $salary->id) }}" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button" onclick="confirmDelete('delete-form-mobile-{{ $salary->id }}')" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+
+                                        <!-- Header -->
+                                        <div class="border-b border-gray-200 dark:border-gray-600 pb-3 mb-3 pr-20">
+                                            <div class="text-xl font-bold text-gray-900 dark:text-white">{{ $salary->month }} {{ $salary->year }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $salary->total_present_days }} / {{ $salary->total_working_days }} Days Present</div>
+                                        </div>
+                                        
+                                        <!-- Details -->
+                                        <div class="grid grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Base Salary</div>
+                                                <div class="font-semibold text-gray-800 dark:text-gray-200 text-lg">₹{{ number_format($salary->actual_salary, 2) }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Cutoff ({{ $salary->total_absent_days }} Absent)</div>
+                                                @if($salary->cutoff > 0)
+                                                    <div class="font-semibold text-red-500 dark:text-red-400 text-lg">- ₹{{ number_format($salary->cutoff, 2) }}</div>
+                                                @else
+                                                    <div class="font-semibold text-green-500 dark:text-green-400 text-lg">₹0.00</div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-1 mb-4 text-sm bg-white dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                            <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                                                <span>ESIC ({{ $salary->esic_percent }}%)</span>
+                                                <span>- ₹{{ number_format($salary->esic_money, 2) }}</span>
+                                            </div>
+                                            <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                                                <span>Tax</span>
+                                                <span>- ₹{{ number_format($salary->tax, 2) }}</span>
+                                            </div>
+                                            <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                                                <span>PF</span>
+                                                <span>- ₹{{ number_format($salary->pf, 2) }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Footer / Final Salary -->
+                                        <div class="flex justify-between items-center bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800/50 shadow-sm">
+                                            <span class="font-bold text-green-800 dark:text-green-500 uppercase tracking-wide text-sm">Final Salary</span>
+                                            <span class="text-2xl font-black text-green-700 dark:text-green-400">₹{{ number_format($salary->final_salary, 2) }}</span>
+                                        </div>
+                                        
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- FULL-SCREEN MODAL BACKGROUND -->
+        <div x-show="showModal" 
+             style="display: none;"
+             class="fixed inset-0 z-[100] overflow-y-auto" 
+             aria-labelledby="modal-title" 
+             role="dialog" 
+             aria-modal="true">
+             
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                
+                <!-- Backdrop -->
+                <div x-show="showModal" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm transition-opacity" 
+                     @click="showModal = false"
+                     aria-hidden="true"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                
+                <!-- Modal Panel -->
+                <div x-show="showModal" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-gray-100 dark:border-gray-700">
+                    
+                    <div class="px-6 pt-6 pb-4 sm:p-8 sm:pb-6">
+                        
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight" id="modal-title" x-text="isEdit ? 'Edit Salary' : 'Add New Salary'"></h3>
+                            <button @click="showModal = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none transition-colors bg-gray-100 dark:bg-gray-700 p-2 rounded-full">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- FORM -->
+                        <form method="POST" :action="formUrl" class="space-y-6">
+                            @csrf
+                            <template x-if="isEdit">
+                                <input type="hidden" name="_method" value="PUT">
+                            </template>
+
+                            <!-- Period Section -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/20 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Salary Period</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div>
+                                        <x-input-label for="month" :value="__('Month')" />
+                                        <select id="month" name="month" x-model="salary.month" class="mt-1 block w-full border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm transition duration-200 py-2.5 px-4" required>
+                                            <option value="" disabled>Select Month</option>
+                                            @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $m)
+                                                <option value="{{ $m }}">{{ $m }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <x-input-label for="year" :value="__('Year')" />
+                                        <x-text-input id="year" name="year" x-model="salary.year" type="number" min="2000" max="2100" class="mt-1 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Earnings & Attendance Section -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-gray-50/50 dark:bg-gray-900/20 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Earnings</h4>
+                                    <div>
+                                        <x-input-label for="actual_salary" :value="__('Base Salary (Gross)')" />
+                                        <div class="relative mt-1">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm font-bold">₹</span>
+                                            </div>
+                                            <x-text-input id="actual_salary" name="actual_salary" x-model="salary.actual_salary" type="number" step="0.01" class="pl-9 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white text-lg font-semibold" required />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-50/50 dark:bg-gray-900/20 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Attendance</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <x-input-label for="total_working_days" :value="__('Working Days')" />
+                                            <x-text-input id="total_working_days" name="total_working_days" x-model="salary.total_working_days" type="number" class="mt-1 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white font-medium" required />
+                                        </div>
+                                        <div>
+                                            <x-input-label for="total_absent_days" :value="__('Absent')" />
+                                            <x-text-input id="total_absent_days" name="total_absent_days" x-model="salary.total_absent_days" type="number" step="0.5" class="mt-1 block w-full bg-white dark:bg-gray-800 border-red-300 dark:border-red-500/50 dark:text-white font-medium focus:border-red-500 focus:ring-red-500" required />
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex items-center justify-between px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800/50">
+                                        <span class="text-sm font-medium text-indigo-800 dark:text-indigo-300">Present Days:</span>
+                                        <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400" x-text="presentDays"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Deductions Section -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/20 p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 pb-6">
+                                <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-4">Fixed Deductions</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                    <div>
+                                        <x-input-label for="esic_percent" :value="__('ESIC (%)')" />
+                                        <div class="relative mt-1">
+                                            <x-text-input id="esic_percent" name="esic_percent" x-model="salary.esic_percent" type="number" step="0.01" class="pr-8 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm font-bold">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <x-input-label for="tax" :value="__('Tax')" />
+                                        <div class="relative mt-1">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm">₹</span>
+                                            </div>
+                                            <x-text-input id="tax" name="tax" x-model="salary.tax" type="number" step="0.01" class="pl-7 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <x-input-label for="pf" :value="__('PF')" />
+                                        <div class="relative mt-1">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm">₹</span>
+                                            </div>
+                                            <x-text-input id="pf" name="pf" x-model="salary.pf" type="number" step="0.01" class="pl-7 block w-full bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white" required />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="bg-gray-100/50 dark:bg-gray-900/50 px-6 py-5 -mx-6 -mb-6 sm:-mx-8 sm:-mb-6 flex flex-col-reverse sm:flex-row-reverse sm:gap-3 rounded-b-3xl border-t border-gray-200 dark:border-gray-700">
+                                <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl border border-transparent shadow-md px-8 py-2.5 bg-indigo-600 text-base font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition mt-3 sm:mt-0" x-text="isEdit ? 'Update Details' : 'Save Salary'"></button>
+                                <button type="button" @click="showModal = false" class="w-full sm:w-auto inline-flex justify-center rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm px-6 py-2.5 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        window.confirmDelete = function(formId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            })
+        }
+
+        window.salaryApp = function() {
+            return {
+                showModal: false, 
+                isEdit: false, 
+                formUrl: @json(route('salaries.store')),
+                salary: {
+                    id: null,
+                    month: '',
+                    year: @json(date('Y')),
+                    actual_salary: @json($latestSalary?->actual_salary ?? ''),
+                    total_working_days: @json($latestSalary?->total_working_days ?? ''),
+                    total_absent_days: '0',
+                    esic_percent: @json($latestSalary?->esic_percent ?? ''),
+                    tax: @json($latestSalary?->tax ?? ''),
+                    pf: @json($latestSalary?->pf ?? '')
+                },
+
+                openCreate() {
+                    this.isEdit = false;
+                    this.formUrl = @json(route('salaries.store'));
+                    this.salary.id = null;
+                    this.salary.month = '';
+                    this.salary.total_absent_days = '0';
+                    this.showModal = true;
+                },
+                openEdit(data) {
+                    this.isEdit = true;
+                    this.formUrl = `/salaries/${data.id}`;
+                    this.salary = { ...data };
+                    this.showModal = true;
+                },
+                get presentDays() {
+                    let w = parseInt(this.salary.total_working_days) || 0;
+                    let a = parseInt(this.salary.total_absent_days) || 0;
+                    let p = w - a;
+                    return p < 0 ? 0 : p;
+                }
+            };
+        };
+    </script>
+</x-app-layout>
