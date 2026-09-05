@@ -133,7 +133,7 @@ export default function SalaryModal({ isOpen, onClose, salaryData }: SalaryModal
                       name="month" 
                       value={formData.month}
                       onChange={(e) => setFormData({...formData, month: e.target.value})}
-                      className="mt-1 block w-full border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm transition duration-200 py-2.5 px-4" 
+                      className="mt-1 block w-full border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm transition duration-200 py-2.5 px-4" 
                       required
                     >
                       <option value="" disabled>Select Month</option>

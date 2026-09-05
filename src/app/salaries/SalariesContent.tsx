@@ -66,7 +66,7 @@ export default function SalariesContent({ salaries, totalCredited, totalCutoff, 
                     id="year_filter" 
                     value={year} 
                     onChange={handleYearChange} 
-                    className="block w-28 sm:w-32 border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:bg-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm py-1.5 px-3 text-sm transition"
+                    className="block w-28 sm:w-32 border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm py-1.5 px-3 text-sm transition"
                   >
                     <option value="all">All Years</option>
                     {availableYears.map((y: number) => (

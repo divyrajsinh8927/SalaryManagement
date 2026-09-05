@@ -7,6 +7,8 @@ import { Lock, Mail, ArrowRight, Activity } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,6 +18,20 @@ export default function LandingPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (isRegister) {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "Registration failed");
+        setLoading(false);
+        return;
+      }
+    }
 
     const result = await signIn("credentials", {
       redirect: false,
@@ -35,9 +51,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 p-3">
-            <Activity className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-          </div>
+          <img src="/logo.jpg" alt="Logo" className="w-20 h-20 rounded-full shadow-lg border-2 border-white dark:border-gray-800" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
           Salary Management
@@ -56,6 +70,32 @@ export default function LandingPage() {
               </div>
             )}
             
+            {isRegister && (
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Full Name
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Activity className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required={isRegister}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label
                 htmlFor="email"
@@ -107,28 +147,14 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900 dark:text-gray-300"
-                >
-                  Remember me
-                </label>
-              </div>
-
               <div className="text-sm">
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={() => setIsRegister(!isRegister)}
                   className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                 >
-                  Forgot password?
-                </a>
+                  {isRegister ? "Already have an account? Sign in" : "Need an account? Register"}
+                </button>
               </div>
             </div>
 
@@ -138,7 +164,7 @@ export default function LandingPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors duration-200"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? (isRegister ? "Registering..." : "Signing in...") : (isRegister ? "Register" : "Sign in")}
                 {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
               </button>
             </div>

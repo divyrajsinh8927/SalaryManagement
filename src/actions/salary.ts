@@ -25,9 +25,9 @@ export async function createSalary(data: any) {
   
   const finalSalary = baseSalary - cutoff - esicMoney - tax - pf
 
-  await prisma.salary.create({
+  await prisma.salaries.create({
     data: {
-      userId: session.user.id,
+      user_id: BigInt(session.user.id),
       month: data.month,
       year: parseInt(data.year),
       actual_salary: baseSalary,
@@ -66,10 +66,10 @@ export async function updateSalary(id: string, data: any) {
   
   const finalSalary = baseSalary - cutoff - esicMoney - tax - pf
 
-  await prisma.salary.update({
+  await prisma.salaries.update({
     where: {
-      id: id,
-      userId: session.user.id
+      id: BigInt(id),
+      user_id: BigInt(session.user.id)
     },
     data: {
       month: data.month,
@@ -94,10 +94,10 @@ export async function deleteSalary(id: string) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  await prisma.salary.delete({
+  await prisma.salaries.delete({
     where: {
-      id: id,
-      userId: session.user.id
+      id: BigInt(id),
+      user_id: BigInt(session.user.id)
     }
   })
   revalidatePath("/salaries")

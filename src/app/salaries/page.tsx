@@ -18,24 +18,37 @@ export default async function SalariesPage({ searchParams }: SalariesPageProps) 
   const { year: yearParam } = await searchParams;
   const year = yearParam || "all";
   
-  const whereClause: any = { userId: session.user.id };
+  const whereClause: any = { user_id: BigInt(session.user.id) };
   if (year !== "all") {
     whereClause.year = parseInt(year);
   }
 
-  const salaries = await prisma.salary.findMany({
+  const salariesRaw = await prisma.salaries.findMany({
     where: whereClause,
     orderBy: [
       { year: "desc" },
-      { id: "desc" } 
+      { month: "desc" } 
     ]
   });
+
+  const salaries = salariesRaw.map(s => ({
+    ...s,
+    id: s.id.toString(),
+    user_id: s.user_id.toString(),
+    actual_salary: Number(s.actual_salary),
+    esic_percent: Number(s.esic_percent),
+    tax: Number(s.tax),
+    pf: Number(s.pf),
+    cutoff: Number(s.cutoff || 0),
+    final_salary: Number(s.final_salary || 0),
+    esic_money: Number(s.esic_money || 0),
+  }));
 
   const totalCredited = salaries.reduce((acc, curr) => acc + curr.final_salary, 0);
   const totalCutoff = salaries.reduce((acc, curr) => acc + curr.cutoff, 0);
 
-  const allUserSalaries = await prisma.salary.findMany({
-    where: { userId: session.user.id },
+  const allUserSalaries = await prisma.salaries.findMany({
+    where: { user_id: BigInt(session.user.id) },
     select: { year: true },
     distinct: ['year'],
     orderBy: { year: 'desc' }

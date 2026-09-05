@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import prisma from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import { NextAuthOptions } from "next-auth"
 
 export const authOptions: NextAuthOptions = {
@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
           where: { email: credentials.email }
         })
 
@@ -25,14 +25,15 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+        const hash = crypto.createHash('md5').update(credentials.password).digest('hex')
+        const isPasswordValid = (hash === user.password)
 
         if (!isPasswordValid) {
           return null
         }
 
         return {
-          id: user.id,
+          id: user.id.toString(),
           email: user.email,
           name: user.name,
           theme: user.theme,
@@ -60,7 +61,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login',
+    signIn: '/',
   },
   session: {
     strategy: "jwt",
