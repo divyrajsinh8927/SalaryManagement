@@ -4,6 +4,23 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import SalariesContent from "./SalariesContent";
 
+const MONTH_ORDER: Record<string, number> = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
+};
+
+const getMonthIndex = (m: string) => MONTH_ORDER[m?.toLowerCase()?.trim()] || 0;
+
 interface SalariesPageProps {
   searchParams: Promise<{ year?: string }>;
 }
@@ -27,7 +44,7 @@ export default async function SalariesPage({ searchParams }: SalariesPageProps) 
     where: whereClause,
     orderBy: [
       { year: "desc" },
-      { month: "desc" } 
+      { id: "desc" } 
     ]
   });
 
@@ -42,9 +59,21 @@ export default async function SalariesPage({ searchParams }: SalariesPageProps) 
     cutoff: Number(s.cutoff || 0),
     final_salary: Number(s.final_salary || 0),
     esic_money: Number(s.esic_money || 0),
+    total_working_days: Number(s.total_working_days),
     total_absent_days: Number(s.total_absent_days),
     total_present_days: Number(s.total_present_days),
   }));
+
+  salaries.sort((a, b) => {
+    if (b.year !== a.year) {
+      return b.year - a.year;
+    }
+    const monthDiff = getMonthIndex(b.month) - getMonthIndex(a.month);
+    if (monthDiff !== 0) {
+      return monthDiff;
+    }
+    return Number(b.id) - Number(a.id);
+  });
 
   const totalCredited = salaries.reduce((acc, curr) => acc + curr.final_salary, 0);
   const totalCutoff = salaries.reduce((acc, curr) => acc + curr.cutoff, 0);

@@ -194,6 +194,8 @@ export default function SalaryModal({ isOpen, onClose, salaryData }: SalaryModal
                         value={formData.total_working_days}
                         onChange={(e) => setFormData({...formData, total_working_days: e.target.value})}
                         type="number" 
+                        step="any"
+                        min="0"
                         className="mt-1 block w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 dark:text-white font-medium rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2.5 px-4" 
                         required 
                       />
