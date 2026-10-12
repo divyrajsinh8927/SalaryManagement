@@ -42,6 +42,8 @@ export default async function SalariesPage({ searchParams }: SalariesPageProps) 
     cutoff: Number(s.cutoff || 0),
     final_salary: Number(s.final_salary || 0),
     esic_money: Number(s.esic_money || 0),
+    total_absent_days: Number(s.total_absent_days),
+    total_present_days: Number(s.total_present_days),
   }));
 
   const totalCredited = salaries.reduce((acc, curr) => acc + curr.final_salary, 0);

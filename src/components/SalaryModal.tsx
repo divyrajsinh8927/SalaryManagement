@@ -67,8 +67,8 @@ export default function SalaryModal({ isOpen, onClose, salaryData }: SalaryModal
 
   if (!isOpen) return null;
 
-  const w = parseInt(formData.total_working_days) || 0;
-  const a = parseInt(formData.total_absent_days) || 0;
+  const w = parseFloat(formData.total_working_days) || 0;
+  const a = parseFloat(formData.total_absent_days) || 0;
   const presentDays = w - a < 0 ? 0 : w - a;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,7 +206,8 @@ export default function SalaryModal({ isOpen, onClose, salaryData }: SalaryModal
                         value={formData.total_absent_days}
                         onChange={(e) => setFormData({...formData, total_absent_days: e.target.value})}
                         type="number" 
-                        step="0.5" 
+                        step="any" 
+                        min="0"
                         className="mt-1 block w-full bg-white dark:bg-gray-800 border-red-300 dark:border-red-500/50 dark:text-white font-medium focus:border-red-500 focus:ring-red-500 rounded-xl shadow-sm py-2.5 px-4" 
                         required 
                       />

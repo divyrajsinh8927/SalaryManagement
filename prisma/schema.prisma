@@ -77,8 +77,8 @@ model salaries {
   user_id            BigInt
   actual_salary      Decimal   @db.Decimal(10, 2)
   total_working_days Int
-  total_present_days Int
-  total_absent_days  Int
+  total_present_days Decimal   @db.Decimal(5, 2)
+  total_absent_days  Decimal   @db.Decimal(5, 2)
   esic_percent       Decimal   @db.Decimal(5, 2)
   tax                Decimal   @db.Decimal(10, 2)
   pf                 Decimal   @db.Decimal(10, 2)
